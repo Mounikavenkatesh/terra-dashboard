@@ -6,6 +6,7 @@
 require('dotenv').config();
 
 const express = require('express');
+const path = require('path');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -79,10 +80,18 @@ mongoose.connection.on('disconnected', () => {
 });
 
 // ================================
-// Root Route
+// Frontend build
 // ================================
 
-app.get('/', (req, res) => {
+const frontendDistPath = path.join(__dirname, '..', 'frontend', 'dist');
+
+app.use(express.static(frontendDistPath));
+
+// ================================
+// API Info Route
+// ================================
+
+app.get('/api/info', (req, res) => {
   res.json({
     title:
       'Satellite Thermal Source Monitoring & Anomaly Analysis API',
@@ -116,6 +125,22 @@ app.get('/', (req, res) => {
 app.use('/api', hotspotRoutes);
 
 // ================================
+// Frontend SPA Fallback
+// ================================
+
+app.get('*', (req, res, next) => {
+  if (req.path === '/api' || req.path.startsWith('/api/')) {
+    return next();
+  }
+
+  res.sendFile(path.join(frontendDistPath, 'index.html'), (err) => {
+    if (err) {
+      next(err);
+    }
+  });
+});
+
+// ================================
 // Error Handling
 // ================================
 
@@ -144,10 +169,9 @@ const server = app.listen(PORT, '0.0.0.0', () => {
     `🔥 Hotspots API: http://localhost:${PORT}/api/hotspots`
   );
   console.log(
-    `⚙️  Data Mode:    ${
-      process.env.FIRMS_API_KEY
-        ? '🟢 LIVE'
-        : '🟡 DEMO MODE'
+    `⚙️  Data Mode:    ${process.env.FIRMS_API_KEY
+      ? '🟢 LIVE'
+      : '🟡 DEMO MODE'
     }`
   );
   console.log('='.repeat(65));
