@@ -20,6 +20,11 @@ const {
 
 const app = express();
 
+const allowedOrigins = (process.env.CORS_ORIGIN || '*')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
 // Railway provides PORT through environment variables.
 // 8080 is used only when running locally.
 const PORT = process.env.PORT || 8080;
@@ -40,7 +45,13 @@ app.use(
 
 app.use(
   cors({
-    origin: '*',
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes('*') || allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      return callback(new Error('Origin is not allowed by CORS'));
+    },
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
   })

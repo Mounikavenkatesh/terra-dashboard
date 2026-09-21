@@ -12,6 +12,7 @@ const PRESETS = [
 
 export default function AnalyzeModal({ isOpen, onClose, onAnalysisSuccess }) {
   const [formData, setFormData] = useState({
+    placeName: PRESETS[0].name,
     latitude: 13.168,
     longitude: 80.264,
     brightness: 395.0,
@@ -28,6 +29,7 @@ export default function AnalyzeModal({ isOpen, onClose, onAnalysisSuccess }) {
 
   const handleApplyPreset = (p) => {
     setFormData({
+      placeName: p.name,
       latitude: p.lat,
       longitude: p.lon,
       brightness: p.bt,
@@ -106,6 +108,25 @@ export default function AnalyzeModal({ isOpen, onClose, onAnalysisSuccess }) {
           {/* Form */}
           <form onSubmit={handleSubmit}>
             <div className="grid-2col" style={{ marginBottom: '0.75rem' }}>
+              <div className="form-group">
+                <label className="form-label" htmlFor="analysis-place">Address or place name</label>
+                <select
+                  id="analysis-place"
+                  className="form-select"
+                  value={formData.placeName}
+                  onChange={(e) => {
+                    const preset = PRESETS.find((p) => p.name === e.target.value);
+                    if (preset) handleApplyPreset(preset);
+                  }}
+                >
+                  {PRESETS.map((p) => (
+                    <option key={p.name} value={p.name}>
+                      {p.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
               <div className="form-group">
                 <label className="form-label">Latitude (-90 to 90)</label>
                 <input
