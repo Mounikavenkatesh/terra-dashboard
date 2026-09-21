@@ -43,4 +43,9 @@ export const analyzeHotspot = async (payload) => {
   return res.data;
 };
 
+export const geocodePlace = async (query) => {
+  const res = await api.get('/geocode', { params: { q: query } });
+  return res.data;
+};
+
 export default api;

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Circle, useMap } from 'react-leaflet';
 import L from 'leaflet';
+import { geocodePlace } from '../services/api';
 
 const BASEMAP_URLS = {
   dark: {
@@ -62,10 +63,44 @@ export default function MapView({
   focusCoords,
 }) {
   const [basemapKey, setBasemapKey] = useState('dark');
+  const [searchCoords, setSearchCoords] = useState(null);
+  const [locationQuery, setLocationQuery] = useState('');
+  const [locationName, setLocationName] = useState('');
+  const [locationError, setLocationError] = useState('');
+  const [locationLoading, setLocationLoading] = useState(false);
   const currentBasemap = BASEMAP_URLS[basemapKey];
+
+  const searchLocation = async (event) => {
+    event.preventDefault();
+    const query = locationQuery.trim();
+    if (!query) return;
+    setLocationLoading(true);
+    setLocationError('');
+    try {
+      const results = await geocodePlace(query);
+      const result = results[0];
+      if (!result) {
+        setLocationError('Location not found - try a different search.');
+        return;
+      }
+      setLocationName(result.display_name);
+      setSearchCoords([Number(result.lat), Number(result.lon)]);
+    } catch (error) {
+      console.error('Location search failed', { query, error });
+      setLocationError(error.response?.data?.error || error.message || 'Location search failed.');
+    } finally {
+      setLocationLoading(false);
+    }
+  };
 
   return (
     <div className="map-viewport">
+      <form onSubmit={searchLocation} style={{ position: 'absolute', top: '12px', left: '12px', zIndex: 800, display: 'flex', gap: '0.35rem', width: 'min(360px, calc(100% - 24px))' }}>
+        <input aria-label="Search a place" value={locationQuery} onChange={(event) => setLocationQuery(event.target.value)} placeholder="Search a place..." style={{ flex: 1, minWidth: 0, padding: '0.55rem 0.7rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-color)', background: 'rgba(17, 24, 39, 0.92)', color: '#fff' }} />
+        <button type="submit" disabled={locationLoading} className="btn btn-primary">{locationLoading ? '...' : 'Search'}</button>
+      </form>
+      {locationError && <div style={{ position: 'absolute', top: '54px', left: '12px', zIndex: 800, maxWidth: '360px', padding: '0.45rem 0.65rem', color: '#fca5a5', background: 'rgba(127, 29, 29, 0.9)', borderRadius: 'var(--radius-sm)', fontSize: '0.72rem' }}>{locationError}</div>}
+      {locationName && !locationError && <div style={{ position: 'absolute', top: '54px', left: '12px', zIndex: 800, maxWidth: '360px', padding: '0.45rem 0.65rem', color: '#bfdbfe', background: 'rgba(17, 24, 39, 0.9)', borderRadius: 'var(--radius-sm)', fontSize: '0.72rem' }}>{locationName}</div>}
       {/* Basemap Switcher Toolbar */}
       <div
         style={{
@@ -108,7 +143,7 @@ export default function MapView({
         scrollWheelZoom={true}
         style={{ width: '100%', height: '100%' }}
       >
-        <MapController focusCoords={focusCoords} />
+        <MapController focusCoords={searchCoords || focusCoords} />
 
         <TileLayer
           url={currentBasemap.url}
